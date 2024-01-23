@@ -1,0 +1,33 @@
+[package]
+name = "simple-discord-middlware-bot"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+dotenv = "0.15.0"
+serde = { version = "1.0.195", features = ["derive"] }
+serenity = "0.12.0"
+tokio = { version = "1.35.1", features = [
+	"macros",
+	"process",
+	"full",
+	"windows-sys",
+] }
+
+[profile.release]
+opt-level = "z"
+codegen-units = 1
+strip = "symbols"
+panic = "abort"
+lto = true
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+enum_glob_use = "deny"
+pedantic = "deny"
+nursery = "deny"
+unwrap_used = "deny"
