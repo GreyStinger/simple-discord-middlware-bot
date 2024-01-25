@@ -1,11 +1,13 @@
 use proc_macro::TokenStream;
+use proc_macro2::TokenStream as TokenStream2;
+use quote::{ quote, ToTokens };
 use syn::parse::{ Error, Parse, ParseStream, Parser, Result as SynResult };
 use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
-use syn::token::Comma;
-use syn::{ parenthesized, Attribute, Expr, Ident, Lit, LitStr, Meta, Path, Token };
+use syn::token::{ Comma, Mut };
+use syn::{ parenthesized, Attribute, Expr, Ident, Lit, LitStr, Meta, Path, Token, Type };
 
-use crate::attributes::{ValueKind, Values};
+use crate::attributes::{ ValueKind, Values };
 
 #[inline]
 pub fn into_stream(e: &Error) -> TokenStream {
@@ -13,12 +15,14 @@ pub fn into_stream(e: &Error) -> TokenStream {
 }
 
 macro_rules! propagate_err {
-    ($res:expr) => {{
+    ($res:expr) => {
+        {
         match $res {
             Ok(v) => v,
             Err(e) => return $crate::util::into_stream(&e),
         }
-    }};
+        }
+    };
 }
 
 /// Converts a `Path` to an `Ident`.
@@ -102,12 +106,6 @@ fn to_ident(p: &Path) -> SynResult<Ident> {
 /// assert_eq!(values.literals.len(), 1);
 /// ```
 pub fn parse_values(attr: &Attribute) -> SynResult<Values> {
-    println!("parsing meta");
-    // let meta = attr.parse_args::<Meta>()?;
-    // attr.meta
-
-    // println!("proceeding with match statement for parse_values");
-    // dbg!(meta.clone());
     match &attr.meta {
         Meta::Path(path) => {
             let name = path
@@ -189,5 +187,22 @@ impl<T: Parse> Parse for Parenthesised<T> {
         parenthesized!(content in input);
 
         Ok(Parenthesised(content.parse_terminated(T::parse, Comma)?))
+    }
+}
+
+#[derive(Debug)]
+pub struct Argument {
+    pub mutable: Option<Mut>,
+    pub name: Ident,
+    pub kind: Type,
+}
+
+impl ToTokens for Argument {
+    fn to_tokens(&self, stream: &mut TokenStream2) {
+        let Argument { mutable, name, kind } = self;
+
+        stream.extend(quote! {
+            #mutable #name: #kind
+        });
     }
 }

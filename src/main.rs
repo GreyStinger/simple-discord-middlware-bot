@@ -92,7 +92,7 @@ impl EventHandler for Handler {
             // println!("Received command interaction: {command:#?}");
 
             let content = match command.data.name.as_str() {
-                // "ping" => Some(commands::user::ping::run(&command.data.options())),
+                "ping" => Some(commands::user::ping::run(&command.data.options())),
                 "id" => Some(commands::admin::id::run(&command.data.options())),
                 // "attachmentinput" => Some(commands::attachmentinput::run(&command.data.options())),
                 // "modal" => {
@@ -133,17 +133,17 @@ impl EventHandler for Handler {
         let guilds_cache = ctx.cache.guilds();
 
         for guild_id in guilds_cache {
-            let commands = guild_id.set_commands(
+            let _commands = guild_id.set_commands(
                 &ctx.http,
                 vec![
-                    // commands::user::ping::register(),
+                    commands::user::ping::register(),
                     commands::admin::id::register(),
                     commands::help::register(),
                     commands::user::create_meeting::register(),
                 ]
             ).await;
 
-            println!("Slash commands: {commands:#?} set for guild_id: {guild_id}");
+            // println!("Slash commands: {commands:#?} set for guild_id: {guild_id}");
         }
     }
 }
@@ -153,14 +153,21 @@ async fn main() {
     dotenv().ok();
     let key = "TOKEN";
 
+    let builtin_token: Option<&'static str> = include_optional::include_str_optional!("../token.txt");
+
     let token: String = match env::var(key) {
         Ok(val) => {
             println!("{}: {}", key, val);
             val
         }
         Err(_e) => {
-            println!("Couldn't interpret {}: {}", key, _e);
-            panic!("Expected a token in the environment");
+            match builtin_token {
+                Some(token) => {
+                    println!("Couldn't interpret {}: {} - Using compile time token instead.", key, _e);
+                    token.to_string()
+                },
+                None => panic!("Expected a token in the environment or at compile time"),
+            }
         }
     };
 

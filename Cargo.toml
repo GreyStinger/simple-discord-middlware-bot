@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 dotenv = "0.15.0"
+include_optional = "1.0.1"
 proc-macro2 = "1.0.78"
 quote = "1.0.35"
 serde = { version = "1.0.195", features = ["derive"] }

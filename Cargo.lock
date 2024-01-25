@@ -796,6 +796,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "include_optional"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3328afceb205b7534c691f71b12334973dbfdfe0eecb9e345bddfbb925bc55fc"
+dependencies = [
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "indexmap"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1832,6 +1842,7 @@ name = "simple-discord-middleware-bot"
 version = "0.1.0"
 dependencies = [
  "dotenv",
+ "include_optional",
  "proc-macro2",
  "quote",
  "serde",
