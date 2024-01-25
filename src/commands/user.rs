@@ -1,13 +1,21 @@
-pub mod ping {
-    use serenity::{ all::ResolvedOption, builder::CreateCommand };
+use greys_macros::command;
 
-    pub fn register() -> CreateCommand {
-        CreateCommand::new("ping").description("It pings!")
-    }
+// pub mod ping {
+//     use serenity::{ all::ResolvedOption, builder::CreateCommand };
 
-    pub fn run(_options: &[ResolvedOption]) -> String {
-        "Pong!".to_owned()
-    }
+//     pub fn register() -> CreateCommand {
+//         CreateCommand::new("ping").description("It pings!")
+//     }
+
+//     pub fn run(_options: &[ResolvedOption]) -> String {
+//         "Pong!".to_owned()
+//     }
+// }
+
+// #[description("It Pings")]
+#[command]
+pub fn ping() -> String {
+    "Pong!".to_owned()
 }
 
 pub mod create_meeting {

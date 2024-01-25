@@ -1,5 +1,5 @@
 [package]
-name = "simple-discord-middlware-bot"
+name = "simple-discord-middleware-bot"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,8 +7,12 @@ edition = "2021"
 
 [dependencies]
 dotenv = "0.15.0"
+proc-macro2 = "1.0.78"
+quote = "1.0.35"
 serde = { version = "1.0.195", features = ["derive"] }
 serenity = "0.12.0"
+songbird = { version = "0.4.0", features = ["receive", "full-doc", "native"] }
+syn = { version = "2.0.48", features = ["full"] }
 tokio = { version = "1.35.1", features = [
 	"macros",
 	"process",
@@ -31,3 +35,8 @@ enum_glob_use = "deny"
 pedantic = "deny"
 nursery = "deny"
 unwrap_used = "deny"
+
+[lib]
+name = "greys_macros"
+path = "libs/greys_macros/lib.rs"
+proc-macro = true
