@@ -1,52 +1,24 @@
-use std::fmt::{ self };
-
-use proc_macro2::Span;
+use proc_macro::TokenStream;
 use syn::parse::{ Error, Parse, ParseStream, Parser, Result as SynResult };
 use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
 use syn::token::Comma;
 use syn::{ parenthesized, Attribute, Expr, Ident, Lit, LitStr, Meta, Path, Token };
 
-/// `ValueKind` is an enumeration of the different kinds of values that can be associated with a name.
-/// Each variant represents a different way that a value can be associated with a name.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[allow(unused)]
-pub enum ValueKind {
-    /// The `Name` variant represents a name with no associated value.
-    /// It corresponds to the `#[<name>]` syntax.
-    Name,
+use crate::attributes::{ValueKind, Values};
 
-    /// The `Equals` variant represents a name with a single associated value.
-    /// It corresponds to the `#[<name> = <value>]` syntax.
-    Equals,
-
-    /// The `List` variant represents a name with multiple associated values.
-    /// It corresponds to the `#[<name>([<value>, <value>, <value>, ...])]` syntax.
-    List,
-
-    /// The `SingleList` variant represents a name with a single associated value, but formatted as a list.
-    /// It corresponds to the `#[<name>(<value>)]` syntax.
-    SingleList,
+#[inline]
+pub fn into_stream(e: &Error) -> TokenStream {
+    e.to_compile_error().into()
 }
 
-/// `fmt::Display` is implemented for `ValueKind` to provide a human-readable representation of the enum.
-/// This is used when formatting the enum as a string.
-impl fmt::Display for ValueKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            // For `Name`, it will display as "`#[<name>]`".
-            Self::Name => f.pad("`#[<name>]`"),
-
-            // For `Equals`, it will display as "`#[<name> = <value>]`".
-            Self::Equals => f.pad("`#[<name> = <value>]`"),
-
-            // For `List`, it will display as "`#[<name>([<value>, <value>, <value>, ...])]`".
-            Self::List => f.pad("`#[<name>([<value>, <value>, <value>, ...])]`"),
-
-            // For `SingleList`, it will display as "`#[<name>(<value>)]`".
-            Self::SingleList => f.pad("`#[<name>(<value>)]`"),
+macro_rules! propagate_err {
+    ($res:expr) => {{
+        match $res {
+            Ok(v) => v,
+            Err(e) => return $crate::util::into_stream(&e),
         }
-    }
+    }};
 }
 
 /// Converts a `Path` to an `Ident`.
@@ -95,49 +67,6 @@ fn to_ident(p: &Path) -> SynResult<Ident> {
     Ok(p.segments[0].ident.clone())
 }
 
-/// `Values` is a public structure that holds the values associated with a name.
-/// It has four public fields: `name`, `literals`, `kind`, and `span`.
-#[derive(Debug)]
-pub struct Values {
-    /// `name` is an `Ident` that represents the name associated with the values.
-    pub name: Ident,
-
-    /// `literals` is a vector of `Lit` that holds the literal values associated with the name.
-    pub literals: Vec<Lit>,
-
-    /// `kind` is a `ValueKind` that represents the kind of values associated with the name.
-    pub kind: ValueKind,
-
-    /// `span` is a `Span` that represents the span of the source code where the values are defined.
-    pub span: Span,
-}
-
-/// Implementation of `Values`.
-impl Values {
-    /// `new` is a public function that creates a new instance of `Values`.
-    ///
-    /// # Arguments
-    ///
-    /// * `name` - An `Ident` that represents the name associated with the values.
-    /// * `kind` - A `ValueKind` that represents the kind of values associated with the name.
-    /// * `literals` - A vector of `Lit` that holds the literal values associated with the name.
-    /// * `span` - A `Span` that represents the span of the source code where the values are defined.
-    ///
-    /// # Returns
-    ///
-    /// A new instance of `Values`.
-    #[inline]
-    #[allow(unused)]
-    pub fn new(name: Ident, kind: ValueKind, literals: Vec<Lit>, span: Span) -> Self {
-        Values {
-            name,
-            literals,
-            kind,
-            span,
-        }
-    }
-}
-
 /// Parses the values from an attribute and returns a `Values` struct.
 ///
 /// This function takes a reference to an `Attribute` as an argument and attempts to parse it into a `Values` struct.
@@ -172,15 +101,18 @@ impl Values {
 /// assert_eq!(values.kind, ValueKind::Equals);
 /// assert_eq!(values.literals.len(), 1);
 /// ```
-#[allow(unused)]
-fn parse_values(attr: &Attribute) -> SynResult<Values> {
-    let meta = attr.parse_args::<Meta>()?;
+pub fn parse_values(attr: &Attribute) -> SynResult<Values> {
+    println!("parsing meta");
+    // let meta = attr.parse_args::<Meta>()?;
+    // attr.meta
 
-    match meta {
+    // println!("proceeding with match statement for parse_values");
+    // dbg!(meta.clone());
+    match &attr.meta {
         Meta::Path(path) => {
             let name = path
                 .get_ident()
-                .ok_or_else(|| Error::new(path.span(), "expected identifier"))?
+                .ok_or_else(|| Error::new(path.span(), "expected identifier (path)"))?
                 .clone();
 
             Ok(Values::new(name, ValueKind::Name, Vec::new(), attr.span()))
@@ -188,15 +120,13 @@ fn parse_values(attr: &Attribute) -> SynResult<Values> {
         Meta::List(meta) => {
             let name = meta.path
                 .get_ident()
-                .ok_or_else(|| Error::new(meta.path.span(), "expected identifier"))?
+                .ok_or_else(|| Error::new(meta.path.span(), "expected identifier (list)"))?
                 .clone();
             let nested: SynResult<Punctuated<Expr, Token![,]>> = Parser::parse2(
                 Punctuated::parse_terminated,
-                meta.tokens
+                meta.tokens.clone()
             );
 
-            // syn v2 has made this so much more tricky :/
-            // ! fixme: if this doesn't work, it's probably here Jay ;-;
             let nested = match nested {
                 Ok(nested) => nested,
                 Err(_) => {
@@ -213,7 +143,7 @@ fn parse_values(attr: &Attribute) -> SynResult<Values> {
                         let i = expr_path.path
                             .get_ident()
                             .ok_or_else(||
-                                Error::new(expr_path.path.span(), "expected identifier")
+                                Error::new(expr_path.path.span(), "expected identifier (nested)")
                             )?
                             .clone();
                         lits.push(Lit::Str(LitStr::new(&i.to_string(), i.span())));
@@ -236,7 +166,7 @@ fn parse_values(attr: &Attribute) -> SynResult<Values> {
         Meta::NameValue(meta) => {
             let name = meta.path
                 .get_ident()
-                .ok_or_else(|| Error::new(meta.path.span(), "expected identifier"))?
+                .ok_or_else(|| Error::new(meta.path.span(), "expected identifier (name_value)"))?
                 .clone();
             let lit = match &meta.value {
                 Expr::Lit(expr_lit) => expr_lit.lit.clone(),

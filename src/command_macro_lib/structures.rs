@@ -67,24 +67,17 @@ impl ToTokens for CommandFun {
     fn to_tokens(&self, stream: &mut TokenStream2) {
         let Self { attrs: _, imports, visibility, name, body } = self;
 
-        // stream.extend(quote! {
-        //     #visibility async fn #name (#(#args),*) -> #ret {
-        //         #(#body)*
-        //     }
-        // });
         stream.extend(
             quote! {
             #visibility mod #name {
                 use serenity::{builder::CreateCommand, all::ResolvedOption};
                 #(#imports)*
                 #visibility async fn register() -> CreateCommand {
-                    // CreateCommand::new(stringify!(#fn_name)) #description
                     CreateCommand::new(stringify!(#name)).description("It pings")
                 }
 
                 #visibility fn run(_options: &[ResolvedOption]) -> String {
                     #(#body)*
-                    // #(#fn_body)*
                 }
             }
         }

@@ -1,13 +1,16 @@
 #![feature(allocator_api)]
 
-mod structures;
-mod util;
+pub(crate) mod structures;
+pub(crate) mod attributes;
+#[macro_use]
+pub(crate) mod util;
 
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse_macro_input;
 
-use crate::structures::CommandFun;
+use structures::*;
+use util::*;
 
 /// `command` is a procedural macro that generates a module for a command in a Discord bot.
 ///
@@ -64,19 +67,28 @@ use crate::structures::CommandFun;
 /// ```
 #[proc_macro_attribute]
 pub fn command(_attr: TokenStream, input: TokenStream) -> TokenStream {
-    // dbg!(_attr, input.clone());
 
-    let input2 = input.clone();
-    let func = parse_macro_input!(input2 as CommandFun);
+    let func = parse_macro_input!(input as CommandFun);
+
     let imports = &func.imports;
     let name = &func.name;
     let visibility = &func.visibility;
     let body = &func.body;
 
-    // let mut expanded = TokenStream2::new();
-    // func.to_tokens(&mut expanded);
+    for attr in &func.attrs {
+        if is_rustfmt_or_clippy_attr(&attr.path()) {
+            continue;
+        }
 
-    // dbg!(&expanded);
+
+        let values = propagate_err!(parse_values(attr));
+        let _span = values.span;
+
+        let name = values.name.to_string();
+        let _name = &name[..];
+
+        // TODO: Work on extracting and assigning attrs
+    }
 
     let expanded =
         quote! {
@@ -84,13 +96,11 @@ pub fn command(_attr: TokenStream, input: TokenStream) -> TokenStream {
             use serenity::{builder::CreateCommand, all::ResolvedOption};
             #(#imports)*
             #visibility async fn register() -> CreateCommand {
-                // CreateCommand::new(stringify!(#fn_name)) #description
                 CreateCommand::new(stringify!(#name)).description("It pings")
             }
             
             #visibility fn run(_options: &[ResolvedOption]) -> String {
                 #(#body)*
-                // #(#fn_body)*
             }
         }
     };

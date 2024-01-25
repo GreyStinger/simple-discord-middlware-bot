@@ -38,5 +38,5 @@ unwrap_used = "deny"
 
 [lib]
 name = "greys_macros"
-path = "libs/greys_macros/lib.rs"
+path = "src/command_macro_lib/lib.rs"
 proc-macro = true

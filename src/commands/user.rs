@@ -14,6 +14,7 @@ use greys_macros::command;
 
 // #[description("It Pings")]
 #[command]
+#[description("It Pings")]
 pub fn ping() -> String {
     "Pong!".to_owned()
 }
