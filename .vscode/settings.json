@@ -3,6 +3,9 @@
 		"bcont",
 		"dotenv",
 		"Hola",
+		"Rtcp",
+		"ssrc",
+		"unmarshal",
 		"vectorize"
 	],
 	"rust-analyzer.diagnostics.disabled": ["unresolved-proc-macro"]

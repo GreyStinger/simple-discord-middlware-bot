@@ -1,21 +1,7 @@
 use quote::{ quote, ToTokens };
 use proc_macro2::TokenStream as TokenStream2;
 use syn::{
-    braced,
-    parse::{ Parse, Error },
-    spanned::Spanned,
-    Attribute,
-    Block,
-    FnArg,
-    Ident,
-    Pat,
-    Path,
-    Result,
-    ReturnType,
-    Stmt,
-    Token,
-    // UseTree,
-    Visibility,
+    braced, parse::{ Error, Parse }, spanned::Spanned, token::Async, Attribute, Block, FnArg, Ident, Pat, Path, Result, ReturnType, Stmt, Token, UseTree, Visibility
 };
 
 use crate::{ util::Parenthesised, Argument };
@@ -60,40 +46,48 @@ fn parse_argument(arg: FnArg) -> Result<Argument> {
 #[derive(Debug)]
 pub struct CommandFun {
     pub attrs: Vec<Attribute>,
-    // pub imports: Vec<UseTree>,
+    pub imports: Vec<UseTree>,
     pub visibility: Visibility,
     pub name: Ident,
     pub args: Vec<Argument>,
     pub body: Vec<Stmt>,
+    pub is_async: bool,
 }
 
 impl Parse for CommandFun {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let attrs = input.call(Attribute::parse_outer)?;
+    fn parse(stream: syn::parse::ParseStream) -> syn::Result<Self> {
+        let attrs = stream.call(Attribute::parse_outer)?;
+        stream.parse::<Token![mod]>()?;
 
-        // ?fixme: Have to look into this, seems like macro used on import only gives import stream to proc_macro 
-        // let mut imports = Vec::new();
-        // while input.peek(Token![use]) {
-        //     input.parse::<Token![use]>()?;
-        //     imports.push(input.parse()?);
-        //     input.parse::<Token![;]>()?;
-        // }
+        // Name of module if I want to use that instead
+        let name = stream.parse::<Ident>()?;
+
+        let input;
+        braced!(input in stream);
+
+        // ?fixme: Have to look into this, seems like macro used on import only gives import stream to proc_macro
+        let mut imports = Vec::new();
+        while input.peek(Token![use]) {
+            input.parse::<Token![use]>()?;
+            imports.push(input.parse()?);
+            input.parse::<Token![;]>()?;
+        }
 
         let visibility = input.parse::<Visibility>()?;
 
         // ?: Do I need this?
-        // match input.parse::<Token![async]>() {
-        //     Ok(_) => {
-        //         // println!("found async token");
-        //     }
-        //     Err(_) => {
-        //         // println!("no async token");
-        //     }
-        // }
+        let is_async = if input.peek(Token![async]) {
+            input.parse::<Async>()?;
+            true
+        } else {
+            false
+        };
+        // let async_is = input.parse::<Asyn
 
         input.parse::<Token![fn]>()?;
 
-        let name = input.parse()?;
+        // let name = input.parse()?;
+        input.parse::<Ident>()?;
 
         let Parenthesised(args) = input.parse::<Parenthesised<FnArg>>()?;
 
@@ -114,24 +108,23 @@ impl Parse for CommandFun {
 
         Ok(CommandFun {
             attrs,
-            // imports,
+            imports,
             visibility,
             name,
             args,
             body,
+            is_async,
         })
     }
 }
 
 impl ToTokens for CommandFun {
     fn to_tokens(&self, stream: &mut TokenStream2) {
-        let Self { attrs: _, 
-            // imports, 
-            visibility, name, args, body } = self;
+        let Self { attrs: _, imports, visibility, name, args, body, is_async: _ } = self;
 
         stream.extend(
             quote! {
-            // #(#imports)*
+            #(use #imports;)*
             #visibility fn #name(#(#args),*) {
                 #(#body)*
             }

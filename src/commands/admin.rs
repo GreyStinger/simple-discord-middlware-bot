@@ -1,38 +1,40 @@
 pub mod id {
+    use serenity::all::GuildId;
     use serenity::builder::{ CreateCommand, CreateCommandOption };
     use serenity::model::application::{ CommandOptionType, ResolvedOption, ResolvedValue };
+    use serenity::model::id::RoleId;
+    use serenity::prelude::Context;
 
     pub fn register() -> CreateCommand {
         CreateCommand::new("id")
-            .description("Get a user id")
+            .description("Get user ids")
             .add_option(
-                CreateCommandOption::new(
-                    CommandOptionType::User,
-                    "id",
-                    "The user to lookup"
-                ).required(true)
+                CreateCommandOption::new(CommandOptionType::Role, "role", "The role to lookup")
+                    .required(true)
             )
     }
- 
-	pub fn run(options: &[ResolvedOption]) -> String {
-		// if let Some(ResolvedOption { value: ResolvedValue::User(user, _), .. }) = options.first() {
-        //     format!("{}'s id is {}", user.tag(), user.id)
-        // } else {
-        //     "Please provide a valid user".to_string()
-        // }
 
-		let mut response = String::new();
-	
-		for option in options {
-			if let ResolvedOption { value: ResolvedValue::Autocomplete { kind: CommandOptionType::SubCommand, value: "Users" }, name: "id" , ..} = option {
-				// response.push_str(&format!("{}'s id is {}\n", user.tag(), user.id));
-			}
-		}
-	
-		if response.is_empty() {
-			response = "Please provide a valid user".to_string();
-		}
-	
-		response
-	}
+    pub async fn run(ctx: &Context, guild_id: GuildId, options: &[ResolvedOption<'_>]) -> String {
+        let mut response = String::new();
+
+        for option in options {
+            if let ResolvedOption { value: ResolvedValue::Role(role), .. } = option {
+                let guild_id = guild_id;
+                let members = guild_id.members(&ctx.http, None, None).await.unwrap();
+
+                let role_id = RoleId::new(role.id.get());
+                for member in members {
+                    if member.roles.contains(&role_id) {
+                        response.push_str(&format!("{}'s id is {}\n", member.user.tag(), member.user.id));
+                    }
+                }
+            }
+        }
+
+        if response.is_empty() {
+            return "Please provide a valid role".to_string();
+        }
+    
+        response
+    }
 }
