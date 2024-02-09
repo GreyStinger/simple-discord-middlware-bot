@@ -17,11 +17,12 @@ pub fn slash_command(_attr: TokenStream, input: TokenStream) -> TokenStream {
 
     let func = parse_macro_input!(input as CommandFun);
 
-    // let imports = &func.imports;
+    let imports = &func.imports;
     let name = &func.name;
     let visibility = &func.visibility;
     let args = &func.args;
     let body = &func.body;
+    let is_async = &func.is_async;
 
     let mut description = None;
 
@@ -43,31 +44,33 @@ pub fn slash_command(_attr: TokenStream, input: TokenStream) -> TokenStream {
             }
             _ => {}
         }
-
-        // TODO: Work on extracting and assigning attrs based on the enum
     }
 
     let description = description.map_or(quote!(), |desc| quote!(.description(#desc)));
+    let async_token = if *is_async == true {
+        quote!(async)
+    } else {
+        quote!()
+    };
 
     let expanded =
         quote! {
         #visibility mod #name {
-            use serenity::{builder::CreateCommand, all::ResolvedOption};
-            // #(#imports)*
+            use serenity::{builder::CreateCommand};
+            #(use #imports;)*
             #visibility fn register() -> CreateCommand {
-                // If attribute description exists put string value in .description(<String>)
-                // CreateCommand::new(stringify!(#name)).description(#description)
                 CreateCommand::new(stringify!(#name))
                     #description
             }
             
             // #visibility fn run(_options: &[ResolvedOption]) -> String {
-            #visibility fn run(#(#args),*) -> String {
+            #visibility #async_token fn  run(#(#args),*) -> String {
                 #(#body)*
             }
         }
     };
 
-    TokenStream::from(expanded)
+    // dbg!(expanded.clone());
 
+    TokenStream::from(expanded)
 }

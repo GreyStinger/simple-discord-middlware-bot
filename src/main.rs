@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use dotenv::dotenv;
 
-use serenity::all::{ Message, UserId, Interaction, Ready };
+use serenity::all::{ Interaction, InteractionResponseFlags, Message, Ready, UserId };
 use serenity::async_trait;
 use serenity::builder::{ CreateInteractionResponseMessage, CreateInteractionResponse };
 use serenity::gateway::ShardManager;
@@ -21,8 +21,11 @@ use serenity::framework::standard::{
     help_commands,
 };
 
+use songbird::{SerenityInit, Songbird};
+
 mod commands;
 mod hooks;
+mod voice_handler;
 
 use commands::owner::{ SLOW_MODE_COMMAND, LATENCY_COMMAND };
 
@@ -88,38 +91,58 @@ struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
+        // println!("Received interaction: {interaction:#?}");
+
         if let Interaction::Command(command) = interaction {
             // println!("Received command interaction: {command:#?}");
 
+            let guild_id = match command.guild_id {
+                Some(id) => id,
+                None => {
+                    println!("This command must be used in a guild.");
+                    return;
+                }
+            };
+
             let content = match command.data.name.as_str() {
                 "ping" => Some(commands::user::ping::run(&command.data.options())),
-                "id" => Some(commands::admin::id::run(&command.data.options())),
-                // "attachmentinput" => Some(commands::attachmentinput::run(&command.data.options())),
-                // "modal" => {
-                //     commands::modal::run(&ctx, &command).await.unwrap();
-                //     None
-                // }
-                "create_meeting" => Some(commands::user::create_meeting::run(&command.data.options())),
-                "help" => {
-                    // let command_data = command.data.clone();
-                    // for option in &command_data.options {
-                    //     match option {
-                    //         CommandDataOption { name, value, .. } => {
-                    //             if name == "message" {
-                    //                 println!("The sent message is: {value:?}");
-                    //             }
-                    //         }
-                    //     }
-                    // }
-                    // cs_help(&ctx, &command, args, help_options, groups, owners);
-                    Some("Still implementing help function".to_string())
+                "id" => {
+                    let result = commands::admin::id::run(
+                        &ctx,
+                        guild_id,
+                        &command.data.options()
+                    ).await;
+                    Some(result)
                 }
+                "join_channel" => {
+                    let result = commands::user::join_channel::run(
+                        &ctx,
+                        guild_id,
+                        &command.data.options()
+                    ).await;
+                    Some(result)
+                }
+                "leave_channel" => {
+                    let result = commands::user::leave_channel::run(
+                        &ctx,
+                        guild_id,
+                        &command.data.options()
+                    ).await;
+
+                    Some(result)
+                }
+                "create_meeting" =>
+                    Some(commands::user::create_meeting::run(&command.data.options())),
+                "help" => { Some("Still implementing help function".to_string()) },
+                "get_mem_usage" => Some(commands::user::get_mem_usage::run()),
                 _ => Some("not implemented :(".to_string()),
             };
 
             if let Some(content) = content {
                 let data = CreateInteractionResponseMessage::new().content(content);
-                let builder = CreateInteractionResponse::Message(data);
+                let builder = CreateInteractionResponse::Message(
+                    data.flags(InteractionResponseFlags::EPHEMERAL)
+                );
                 if let Err(why) = command.create_response(&ctx.http, builder).await {
                     println!("Cannot respond to slash command: {why}");
                 }
@@ -140,6 +163,9 @@ impl EventHandler for Handler {
                     commands::admin::id::register(),
                     commands::help::register(),
                     commands::user::create_meeting::register(),
+                    commands::user::join_channel::register(),
+                    commands::user::leave_channel::register(),
+                    commands::user::get_mem_usage::register()
                 ]
             ).await;
 
@@ -151,21 +177,27 @@ impl EventHandler for Handler {
 #[tokio::main]
 async fn main() {
     dotenv().ok();
-    let key = "TOKEN";
+    let token_env_key = "TOKEN";
+    let songbird = Songbird::serenity();
 
-    let builtin_token: Option<&'static str> = include_optional::include_str_optional!("../token.txt");
+    let builtin_token: Option<&'static str> =
+        include_optional::include_str_optional!("../token.txt");
 
-    let token: String = match env::var(key) {
+    let token: String = match env::var(token_env_key) {
         Ok(val) => {
-            println!("{}: {}", key, val);
+            println!("{}: {}", token_env_key, val);
             val
         }
         Err(_e) => {
             match builtin_token {
                 Some(token) => {
-                    println!("Couldn't interpret {}: {} - Using compile time token instead.", key, _e);
+                    println!(
+                        "Couldn't interpret {}: {} - Using compile time token instead.",
+                        token_env_key,
+                        _e
+                    );
                     token.to_string()
-                },
+                }
                 None => panic!("Expected a token in the environment or at compile time"),
             }
         }
@@ -202,6 +234,7 @@ async fn main() {
     let intents = GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT;
     let mut client = Client::builder(token, intents)
         .event_handler(Handler)
+        .register_songbird_with(songbird)
         .framework(framework)
         .type_map_insert::<CommandCounter>(HashMap::default()).await
         .expect("Error creating client");
