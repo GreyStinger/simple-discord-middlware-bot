@@ -1,3 +1,6 @@
 /target
+.nvim*
+.vscode*
 .env
 token.txt
+recording*.wav

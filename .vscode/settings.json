@@ -1,9 +1,0 @@
-{
-	"cSpell.words": [
-		"bcont",
-		"dotenv",
-		"Hola",
-		"vectorize"
-	],
-	"rust-analyzer.diagnostics.disabled": ["unresolved-proc-macro"]
-}

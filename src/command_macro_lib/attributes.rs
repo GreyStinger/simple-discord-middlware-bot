@@ -1,16 +1,16 @@
 use std::fmt::{ self };
 
 use proc_macro2::Span;
-use syn::{Ident, Lit, parse::Result};
+use syn::{Ident, Lit};
 
-#[inline]
-pub fn _parse<T: AttributeOption>(values: Values) -> Result<T> {
-    T::parse(values)
-}
+// #[inline]
+// pub fn _parse<T: AttributeOption>(values: Values) -> Result<T> {
+//     T::parse(values)
+// }
 
-pub trait AttributeOption: Sized {
-    fn parse(values: Values) -> Result<Self>;
-}
+// pub trait AttributeOption: Sized {
+//     fn parse(values: Values) -> Result<Self>;
+// }
 
 /// `ValueKind` is an enumeration of the different kinds of values that can be associated with a name.
 /// Each variant represents a different way that a value can be associated with a name.
