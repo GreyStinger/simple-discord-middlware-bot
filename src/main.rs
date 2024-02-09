@@ -5,20 +5,14 @@ use std::sync::Arc;
 use dotenv::dotenv;
 
 use event_handler::Handler;
-use serenity::all::{ Message, UserId };
 
 use serenity::gateway::ShardManager;
 use serenity::http::Http;
 use serenity::prelude::*;
-use serenity::framework::standard::macros::{ group, help };
+use serenity::framework::standard::macros::group;
 use serenity::framework::standard::{
     StandardFramework,
     Configuration,
-    Args,
-    HelpOptions,
-    CommandGroup,
-    CommandResult,
-    help_commands,
 };
 
 use songbird::{ SerenityInit, Songbird };
@@ -100,7 +94,6 @@ async fn main() {
 
     let framework = StandardFramework::new()
         .before(hooks::before)
-        .help(&CS_HELP)
         .group(&OWNER_GROUP);
 
     framework.configure(Configuration::new().prefix("!").on_mention(Some(bot_id)).owners(owners));

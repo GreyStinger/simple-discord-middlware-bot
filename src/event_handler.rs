@@ -24,21 +24,10 @@ impl EventHandler for Handler {
                 }
             };
 
-            // if let "help" = command.data.name.as_str() {
-            //     match
-            //         commands::help::cs_help(&ctx, &interaction.me, args, help_options, groups, owners).await
-            //     {
-            //         Ok(help_embed) => println!(""),
-            //         Err(err) => println!("Error: {err:?}"),
-            //     }
-
-            //     return;
-            // }
-
             let content = match command.data.name.as_str() {
                 "ping" => Some(commands::user::ping::run(&command.data.options())),
                 "id" => {
-                    let result = commands::admin::id::run(
+                    let result = commands::user::id::run(
                         &ctx,
                         guild_id,
                         &command.data.options()
@@ -93,7 +82,7 @@ impl EventHandler for Handler {
                 &ctx.http,
                 vec![
                     commands::user::ping::register(),
-                    commands::admin::id::register(),
+                    commands::user::id::register(),
                     commands::help::register(),
                     commands::user::create_meeting::register(),
                     commands::user::join_channel::register(),
