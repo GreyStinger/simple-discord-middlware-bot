@@ -83,7 +83,6 @@ impl EventHandler for Handler {
                 vec![
                     commands::user::ping::register(),
                     commands::user::id::register(),
-                    commands::help::register(),
                     commands::user::create_meeting::register(),
                     commands::user::join_channel::register(),
                     commands::user::leave_channel::register(),
