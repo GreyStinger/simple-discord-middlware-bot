@@ -1,6 +1,7 @@
 # TODO
 
 Make checks for when a bot is manually disconnected
+Tests maybe
 
 ## Safe shutdown
 
