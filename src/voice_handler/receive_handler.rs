@@ -67,7 +67,6 @@ impl VoiceEventHandler for ReceiveHandler {
                 self.handle_voice_tick(packet).await;
                 // println!("Received packet {:?}", packet);
             }
-
             // EventContext::RtcpPacket(_packet) => {
             //     // let mut raw_packet = packet.packet.clone();
             //     // let rtcp_decode = rtcp::packet::unmarshal(&mut raw_packet).unwrap();

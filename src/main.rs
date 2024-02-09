@@ -169,6 +169,17 @@ impl EventHandler for Handler {
                 ]
             ).await;
 
+            // let manager = songbird::get(&ctx).await.expect("Songbird Voice client placed in at initialization.");
+            // // let handler = ArcMutexReceiveHandler;
+
+            // if let Some(call) = songbird::get(&ctx).await.unwrap().get(guild_id) {
+            //     let arc_mutex_handler = ArcMutexReceiveHandler::new(handler.clone());
+
+            //     let _ = call.lock().await.add_global_event(songbird::Event::Core(CoreEvent::ClientDisconnect), arc_mutex_handler.clone());
+            //     let _ = call.lock().await.add_global_event(songbird::Event::Core(CoreEvent::RtcpPacket), arc_mutex_handler.clone());
+            //     let _ = call.lock().await.add_global_event(songbird::Event::Core(CoreEvent::RtpPacket), arc_mutex_handler.clone());
+            // }
+
             // println!("Slash commands: {commands:#?} set for guild_id: {guild_id}");
         }
     }
