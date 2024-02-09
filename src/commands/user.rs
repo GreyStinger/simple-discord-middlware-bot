@@ -55,7 +55,7 @@ pub mod join_channel {
     use serenity::builder::{ CreateCommand, CreateCommandOption };
     use serenity::prelude::Context;
     use serenity::model::id::ChannelId;
-    use crate::commands::voice_client_control::voice_channel::join_voice_channel;
+    use crate::voice_handler::voice_channel::join_voice_channel;
 
     pub fn register() -> CreateCommand {
         CreateCommand::new("join_channel")
@@ -102,7 +102,7 @@ mod leave_channel {
     use serenity::all::ResolvedOption;
     use serenity::all::GuildId;
     use serenity::prelude::Context;
-    use crate::commands::voice_client_control::voice_channel::leave_voice_channel;
+    use crate::voice_handler::voice_channel::leave_voice_channel;
 
     pub async fn run(ctx: &Context, guild_id: GuildId, _options: &[ResolvedOption<'_>]) -> String {
         if let Err(e) = leave_voice_channel(ctx, guild_id).await {

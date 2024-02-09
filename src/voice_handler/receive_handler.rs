@@ -65,7 +65,6 @@ impl VoiceEventHandler for ReceiveHandler {
         match ctx {
             EventContext::VoiceTick(packet) => {
                 self.handle_voice_tick(packet).await;
-                // println!("Received packet {:?}", packet);
             }
             // EventContext::RtcpPacket(_packet) => {
             //     // let mut raw_packet = packet.packet.clone();
@@ -73,11 +72,6 @@ impl VoiceEventHandler for ReceiveHandler {
             //     // println!("Ping to server: {:?}", rtcp_decode);
             //     println!("Received Rtcp packet");
             // }
-
-            EventContext::ClientDisconnect(_event) => {
-                // let buffer = self.voice_buffer.lock().await;
-                // println!("current buffer: {buffer:?}");
-            }
             EventContext::DriverDisconnect(_event) => {
                 let buffer = self.voice_buffer.lock().await;
                 wav_manager::write(buffer)

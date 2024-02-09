@@ -50,33 +50,9 @@ pub async fn join_voice_channel(
         let _ = call
             .lock().await
             .add_global_event(
-                songbird::Event::Core(CoreEvent::ClientDisconnect),
-                arc_mutex_handler.clone()
-            );
-        let _ = call
-            .lock().await
-            .add_global_event(
                 songbird::Event::Core(CoreEvent::DriverDisconnect),
                 arc_mutex_handler.clone()
             );
-        // let _ = call
-        //     .lock().await
-        //     .add_global_event(
-        //         songbird::Event::Core(CoreEvent::RtcpPacket),
-        //         arc_mutex_handler.clone()
-        //     );
-        // let _ = call
-        //     .lock().await
-        //     .add_global_event(
-        //         songbird::Event::Core(CoreEvent::RtpPacket),
-        //         arc_mutex_handler.clone()
-        //     );
-        // let _ = call
-        //     .lock().await
-        //     .add_global_event(
-        //         songbird::Event::Core(CoreEvent::SpeakingStateUpdate),
-        //         arc_mutex_handler.clone()
-        //     );
     }
 
     result
