@@ -3,4 +3,4 @@
 .vscode*
 .env
 token.txt
-recording*.wav
+recording*

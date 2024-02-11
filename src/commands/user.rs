@@ -1,4 +1,13 @@
 use greys_macros::slash_command;
+use serenity::{
+    all::CommandInteraction,
+    async_trait,
+    builder::CreateCommand,
+    client::Context,
+    framework::standard::CommandError,
+};
+
+use crate::event_handler::Command;
 
 pub mod id {
     use serenity::all::GuildId;
@@ -11,8 +20,11 @@ pub mod id {
         CreateCommand::new("id")
             .description("Get user ids")
             .add_option(
-                CreateCommandOption::new(CommandOptionType::Role, "role", "The role to lookup")
-                    .required(true)
+                CreateCommandOption::new(
+                    CommandOptionType::Role,
+                    "role",
+                    "The role to lookup"
+                ).required(true)
             )
     }
 
@@ -27,7 +39,9 @@ pub mod id {
                 let role_id = RoleId::new(role.id.get());
                 for member in members {
                     if member.roles.contains(&role_id) {
-                        response.push_str(&format!("{}'s id is {}\n", member.user.tag(), member.user.id));
+                        response.push_str(
+                            &format!("{}'s id is {}\n", member.user.tag(), member.user.id)
+                        );
                     }
                 }
             }
@@ -36,18 +50,32 @@ pub mod id {
         if response.is_empty() {
             return "Please provide a valid role".to_string();
         }
-    
+
         response
     }
 }
-// #[description("It Pings")]
-#[slash_command]
-#[description("It Pings")]
-mod ping {
-    use serenity::all::ResolvedOption;
 
-    pub fn ping(_options: &[ResolvedOption]) -> String {
-        "Pong!".to_owned()
+// #[slash_command]
+// #[description("It Pings")]
+
+pub struct Ping;
+
+#[async_trait]
+impl Command for Ping {
+    fn name(&self) -> &'static str {
+        "ping"
+    }
+
+    fn register(&self) -> CreateCommand {
+        CreateCommand::new(self.name()).description("It Pongs!")
+    }
+
+    async fn run(
+        &self,
+        _ctx: &Context,
+        _command: &CommandInteraction
+    ) -> Result<String, CommandError> {
+        Ok("Pong!".to_owned())
     }
 }
 
@@ -73,90 +101,6 @@ mod create_meeting {
         }
 
         String::from("Ran create_meeting successfully")
-    }
-}
-
-pub mod join_channel {
-    use serenity::all::{ Channel, ChannelType, CommandOptionType, ResolvedOption, ResolvedValue };
-    use serenity::all::GuildId;
-    use serenity::builder::{ CreateCommand, CreateCommandOption };
-    use serenity::prelude::Context;
-    use serenity::model::id::ChannelId;
-    use crate::voice_handler::voice_channel::join_voice_channel;
-
-    pub fn register() -> CreateCommand {
-        CreateCommand::new("join_channel")
-            .description("Simply makes the bot join a channel")
-            .add_option(
-                CreateCommandOption::new(
-                    CommandOptionType::Channel,
-                    "channel",
-                    "The channel to join"
-                ).required(true)
-            )
-    }
-
-    pub async fn run(ctx: &Context, guild_id: GuildId, options: &[ResolvedOption<'_>]) -> String {
-        let channel_id = options.iter().find_map(|option| {
-            if let ResolvedOption { value: ResolvedValue::Channel(channel), .. } = option {
-                Some(ChannelId::new(channel.id.get()))
-            } else {
-                None
-            }
-        });
-
-        match channel_id {
-            Some(channel_id) => {
-                // Fetch the channel to check if it's a voice channel
-                match channel_id.to_channel(ctx).await {
-                    Ok(Channel::Guild(channel)) if channel.kind == ChannelType::Voice => {
-                        match join_voice_channel(ctx, guild_id, channel_id).await {
-                            Ok(_) => "Successfully joined voice channel".to_string(),
-                            Err(e) => format!("Failed to join voice channel: {}", e),
-                        }
-                    }
-                    _ => "Please provide a valid voice channel".to_string(),
-                }
-            }
-            None => "Please provide a valid channel".to_string(),
-        }
-    }
-}
-
-#[slash_command]
-#[description("Simply makes the bot leave a channel")]
-mod leave_channel {
-    use serenity::all::ResolvedOption;
-    use serenity::all::GuildId;
-    use serenity::prelude::Context;
-    use crate::voice_handler::voice_channel::leave_voice_channel;
-
-    pub async fn run(ctx: &Context, guild_id: GuildId, _options: &[ResolvedOption<'_>]) -> String {
-        if let Err(e) = leave_voice_channel(ctx, guild_id).await {
-            format!("Failed to leave voice channel: {}", e)
-        } else {
-            "Successfully left voice channel".to_string()
-        }
-    }
-}
-
-pub mod record_voice {
-    use serenity::{ all::CommandOptionType, builder::{ CreateCommand, CreateCommandOption } };
-
-    pub fn _register() -> CreateCommand {
-        CreateCommand::new("record_voice")
-            .description("Makes the bot record voice data until commanded to stop")
-            .add_option(
-                CreateCommandOption::new(
-                    CommandOptionType::Boolean,
-                    "record",
-                    "Whether the bot should be recording"
-                ).required(true)
-            )
-    }
-
-    pub fn _run() -> String {
-        "in development".to_owned()
     }
 }
 

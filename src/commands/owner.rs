@@ -1,80 +1,70 @@
 use serenity::{
-    framework::standard::{ macros::command, Args, CommandResult },
+    framework::standard::{ macros::command, CommandResult },
     client::Context,
     all::Message,
-    builder::EditChannel,
 };
 
 use crate::ShardManagerContainer;
 
-/// This is an asynchronous function that sets the slow mode rate for a channel.
-///
-/// # Arguments
-///
-/// * `ctx` - A reference to the context in which this command is being called.
-/// * `msg` - A reference to the message that triggered this command.
-/// * `args` - The arguments passed to this command.
-///
-/// # Description
-///
-/// This function sets the slow mode rate for a channel. The slow mode rate is the amount of time a user must wait before sending another message in the channel.
-///
-/// If a slow mode rate is provided as an argument, the function will attempt to set the channel's slow mode rate to this value. If the operation is successful, a success message is sent to the channel. If the operation fails, an error message is sent to the channel.
-///
-/// If no slow mode rate is provided as an argument, the function will retrieve the current slow mode rate from the channel and send a message to the channel with this value.
-///
-/// If the channel cannot be found in the cache, an error message is sent to the channel.
-///
-/// # Returns
-///
-/// This function returns a `CommandResult`. If the function executes successfully, it returns `Ok(())`. If the function encounters an error, it returns `Err(why)`, where `why` is the error that occurred.
-///
-/// # Examples
-///
-/// ```no_run
-/// pub async fn slow_mode(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-///     let say_content = if let Ok(slow_mode_rate_seconds) = args.single::<u16>() {
-///         let builder = EditChannel::new().rate_limit_per_user(slow_mode_rate_seconds);
-///         if let Err(why) = msg.channel_id.edit(&ctx.http, builder).await {
-///             println!("Error setting channel's slow mode rate: {why:?}");
-///
-///             format!("Failed to set slow mode to `{slow_mode_rate_seconds}` seconds.")
-///         } else {
-///             format!("Successfully set slow mode rate to `{slow_mode_rate_seconds}` seconds.")
-///         }
-///     } else if let Some(channel) = msg.channel_id.to_channel_cached(&ctx.cache) {
-///         let slow_mode_rate = channel.rate_limit_per_user.unwrap_or(0);
-///         format!("Current slow mode rate is `{slow_mode_rate}` seconds.")
-///     } else {
-///         "Failed to find channel in cache.".to_string()
-///     };
-///
-///     msg.channel_id.say(&ctx.http, say_content).await?;
-///
-///     Ok(())
-/// }
-/// ```
-#[command]
-pub async fn slow_mode(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let say_content = if let Ok(slow_mode_rate_seconds) = args.single::<u16>() {
-        let builder = EditChannel::new().rate_limit_per_user(slow_mode_rate_seconds);
-        if let Err(why) = msg.channel_id.edit(&ctx.http, builder).await {
-            println!("Error setting channel's slow mode rate: {why:?}");
-
-            format!("Failed to set slow mode to `{slow_mode_rate_seconds}` seconds.")
-        } else {
-            format!("Successfully set slow mode rate to `{slow_mode_rate_seconds}` seconds.")
-        }
-    } else if let Some(channel) = msg.channel_id.to_channel_cached(&ctx.cache) {
-        let slow_mode_rate = channel.rate_limit_per_user.unwrap_or(0);
-        format!("Current slow mode rate is `{slow_mode_rate}` seconds.")
-    } else {
-        "Failed to find channel in cache.".to_string()
+pub mod slow_mode {
+    use serenity::{
+        all::{ Channel, ChannelId, CommandOptionType, ResolvedOption, ResolvedValue },
+        builder::{ CreateCommand, CreateCommandOption, EditChannel },
+        client::Context,
     };
 
-    msg.channel_id.say(&ctx.http, say_content).await?;
+    pub fn register() -> CreateCommand {
+        CreateCommand::new("slow_mode")
+            .description("Set Channel to slow mode")
+            .add_option(
+                CreateCommandOption::new(
+                    CommandOptionType::Integer,
+                    "Rate Limit",
+                    "How long the delay should be between messages in seconds (0 is Off)"
+                ).required(true)
+            )
+    }
 
-    Ok(())
+    pub async fn run(
+        ctx: &Context,
+        channel_id: &ChannelId,
+        options: &[ResolvedOption<'_>]
+    ) -> String {
+        // Extract the delay value directly from the options
+        let delay = options
+            .iter()
+            .find_map(|option| {
+                if option.name == "Rate Limit" {
+                    if let ResolvedValue::Integer(rate) = option.value { Some(rate) } else { None }
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_default();
+
+        // Fetch the channel and handle the error inline
+        let channel = match channel_id.to_channel(&ctx.http).await {
+            Ok(channel) => channel,
+            Err(_) => {
+                println!("Somehow failed to fetch channel with id: {}", channel_id);
+                return "Failed to find channel that you requested to put into slow mode.".to_owned();
+            }
+        };
+
+        // Handle the channel type and edit operation inline
+        match channel {
+            Channel::Guild(mut channel) => {
+                let builder = EditChannel::new().rate_limit_per_user(delay as u16);
+                match channel.edit(&ctx.http, builder).await {
+                    Ok(_) =>
+                        format!("Set {} to rate limit with {} second delay", channel.name(), delay),
+                    Err(err) => format!("Failed to set Slow mode with reason: {:?}", err),
+                }
+            }
+            _ =>
+                "Failed to set channel to Slow Mode. Please make sure to run this in a Servers Channel".to_owned(),
+        }
+    }
 }
 
 #[command]

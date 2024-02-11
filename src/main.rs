@@ -2,6 +2,12 @@ use std::collections::{ HashMap, HashSet };
 use std::env;
 use std::sync::Arc;
 
+#[allow(unused_imports)]
+use db::DatabasePool;
+#[allow(unused_imports)]
+use diesel::r2d2::{ConnectionManager, Pool};
+#[allow(unused_imports)]
+use diesel::PgConnection;
 use dotenv::dotenv;
 
 use event_handler::Handler;
@@ -21,8 +27,9 @@ mod commands;
 mod hooks;
 mod voice_handler;
 mod event_handler;
+mod db;
 
-use commands::owner::{ SLOW_MODE_COMMAND, LATENCY_COMMAND };
+use commands::owner::LATENCY_COMMAND;
 
 struct ShardManagerContainer;
 
@@ -40,7 +47,7 @@ impl TypeMapKey for CommandCounter {
 #[owners_only]
 #[summary = "Commands for server owners"]
 #[only_in(guilds)]
-#[commands(slow_mode, latency)]
+#[commands(latency)]
 struct Owner;
 
 #[tokio::main]
@@ -100,15 +107,22 @@ async fn main() {
 
     let intents = GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT;
     let mut client = Client::builder(token, intents)
-        .event_handler(Handler)
+        .event_handler(Handler::new())
         .register_songbird_with(songbird)
         .framework(framework)
         .type_map_insert::<CommandCounter>(HashMap::default()).await
         .expect("Error creating client");
 
+    // TODO! Important dd env read for db connection
+    // let database_url = "postgres://username:password@localhost/database";
+
+    // let db_manager = ConnectionManager::<PgConnection>::new(database_url);
+    // let db_pool = Pool::builder().build(db_manager).expect("Failed to create db pool");
+
     {
         let mut data = client.data.write().await;
         data.insert::<ShardManagerContainer>(Arc::clone(&client.shard_manager));
+        // data.insert::<DatabasePool>(db_pool);
     }
 
     if let Err(why) = client.start().await {
