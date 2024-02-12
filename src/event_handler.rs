@@ -103,14 +103,6 @@ impl EventHandler for Handler {
 
             let content = match command.data.name.as_str() {
                 // "ping" => Some(commands::user::ping::run(&ctx, &command)),
-                "id" => {
-                    let result = commands::user::id::run(
-                        &ctx,
-                        guild_id,
-                        &command.data.options()
-                    ).await;
-                    Some(result)
-                }
                 "join_channel" => {
                     let result = commands::driver_control::join_channel::run(
                         &ctx,

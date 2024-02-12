@@ -11,7 +11,7 @@ pub mod register_user {
  
 	pub fn register() -> Vec<CreateCommand> {
 		return vec![
-			user::id::register(),
+			user::Id.register(),
 			user::Ping.register(),
 			user::create_meeting::register(),
 

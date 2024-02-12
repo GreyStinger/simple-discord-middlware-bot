@@ -2,22 +2,25 @@ use greys_macros::slash_command;
 use serenity::{
     all::CommandInteraction,
     async_trait,
-    builder::CreateCommand,
+    builder::{ CreateCommand, CreateCommandOption },
     client::Context,
     framework::standard::CommandError,
 };
+use serenity::model::application::{ CommandOptionType, ResolvedOption, ResolvedValue };
+use serenity::model::id::RoleId;
 
 use crate::event_handler::Command;
 
-pub mod id {
-    use serenity::all::GuildId;
-    use serenity::builder::{ CreateCommand, CreateCommandOption };
-    use serenity::model::application::{ CommandOptionType, ResolvedOption, ResolvedValue };
-    use serenity::model::id::RoleId;
-    use serenity::prelude::Context;
+pub struct Id;
 
-    pub fn register() -> CreateCommand {
-        CreateCommand::new("id")
+#[async_trait]
+impl Command for Id {
+    fn name(&self) -> &'static str {
+        "id"
+    }
+
+    fn register(&self) -> CreateCommand {
+        CreateCommand::new(self.name())
             .description("Get user ids")
             .add_option(
                 CreateCommandOption::new(
@@ -28,13 +31,24 @@ pub mod id {
             )
     }
 
-    pub async fn run(ctx: &Context, guild_id: GuildId, options: &[ResolvedOption<'_>]) -> String {
+    async fn run(
+        &self,
+        ctx: &Context,
+        command: &CommandInteraction
+    ) -> Result<String, CommandError> {
         let mut response = String::new();
 
-        for option in options {
+        let guild_id = match command.guild_id {
+            Some(id) => id,
+            None => {
+                return Ok("This command must be used in a guild.".to_owned());
+            }
+        };
+
+        for option in command.data.options() {
             if let ResolvedOption { value: ResolvedValue::Role(role), .. } = option {
                 let guild_id = guild_id;
-                let members = guild_id.members(&ctx.http, None, None).await.unwrap();
+                let members = guild_id.members(&ctx.http, None, None).await?;
 
                 let role_id = RoleId::new(role.id.get());
                 for member in members {
@@ -48,10 +62,10 @@ pub mod id {
         }
 
         if response.is_empty() {
-            return "Please provide a valid role".to_string();
+            return Err(CommandError::from("Please provide a valid role"));
         }
 
-        response
+        Ok(response)
     }
 }
 
